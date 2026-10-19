@@ -1,0 +1,32 @@
+# ตั้งค่าช่อง — แก้ส่วนนี้ให้ตรงกับช่องของคุณ
+channel:
+  name: "เรื่องเล่าก่อนนอน"
+  niche: "เรื่องสั้นสะเทือนใจและบทเรียนชีวิตของคนทำงานไทย"
+  persona: "ผู้เล่าเรื่องเสียงอบอุ่น พูดเหมือนเพื่อนเล่าให้ฟัง ไม่สั่งสอน"
+  language: "th"
+  audience: "คนทำงานอายุ 22-40 ปีที่ดูคลิปตอนพักหรือก่อนนอน"
+  # หมวดสินค้า Shopee ที่ผูกกับเรื่องได้ (เว้นว่างถ้าไม่ทำ affiliate)
+  product_categories:
+    - "อุปกรณ์ช่วยการนอน"
+    - "ของใช้บนโต๊ะทำงาน"
+    - "หนังสือพัฒนาตัวเอง"
+
+content:
+  video_seconds: 50        # ความยาวคลิปเป้าหมาย
+  scenes: 6                # จำนวนภาพต่อคลิป
+  ideas_per_run: 5         # จำนวนไอเดียที่ให้ AI คิดก่อนเลือก
+  affiliate_ratio: 0.3     # สัดส่วนคลิปที่แนบสินค้า (0 = ไม่แนบเลย)
+
+model:
+  name: "claude-opus-5-5"
+  effort: "medium"
+
+tts:
+  provider: "auto"         # auto | elevenlabs | gtts | none
+
+images:
+  provider: "placeholder"  # placeholder = ภาพสีพื้นสำหรับทดสอบ, ต่อผู้ให้บริการจริงได้ใน agent/images.py
+
+video:
+  width: 1080
+  height: 1920
