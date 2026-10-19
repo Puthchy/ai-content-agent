@@ -118,5 +118,22 @@ class Pipeline:
         (clip_dir / "post.txt").write_text("\n".join(post) + "\n", encoding="utf-8")
 
         save_history(history + [script.title])
-        self.log(f"เสร็จ: {clip_dir}")
+        self.log(f"เสร็จ: output/{clip_dir.name}")
         return clip_dir
+
+
+def build_pipeline(settings: Settings, dry_run: bool, log=print) -> Pipeline:
+    """Wire the real Claude client, or canned answers for a no-API-key test run."""
+    if dry_run:
+        from .fake import FakeLLM
+        settings.raw.setdefault("tts", {})["provider"] = "none"
+        settings.raw.setdefault("images", {})["provider"] = "placeholder"
+        settings.raw["content"]["affiliate_ratio"] = 1.0
+        return Pipeline(settings, FakeLLM(), log)
+    if not settings.anthropic_key:
+        raise RuntimeError("ยังไม่ได้ใส่ ANTHROPIC_API_KEY ใน .env (หรือใช้โหมดทดสอบ)")
+    from .llm import LLM
+    m = settings.section("model")
+    llm = LLM(settings.anthropic_key, m.get("name", "claude-opus-5-5"),
+              m.get("effort", "medium"), render_prompt("system", **settings.channel))
+    return Pipeline(settings, llm, log)

@@ -1,10 +1,10 @@
-"""CLI: python -m agent run [--count N] [--dry-run]"""
+"""CLI: python -m agent run [--count N] [--dry-run] | python -m agent serve [--port P]"""
 
 import argparse
 import sys
 
-from .config import OUTPUT_DIR, load_settings, render_prompt
-from .pipeline import Pipeline
+from .config import OUTPUT_DIR, load_settings
+from .pipeline import build_pipeline
 
 
 def main() -> int:
@@ -13,27 +13,23 @@ def main() -> int:
     run = sub.add_parser("run", help="make clips")
     run.add_argument("--count", type=int, default=1)
     run.add_argument("--dry-run", action="store_true", help="no API calls; canned script, silent audio")
+    serve = sub.add_parser("serve", help="open the web interface")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
 
-    settings = load_settings()
     OUTPUT_DIR.mkdir(exist_ok=True)
 
-    if args.dry_run:
-        from .fake import FakeLLM
-        llm = FakeLLM()
-        settings.raw.setdefault("tts", {})["provider"] = "none"
-        settings.raw.setdefault("images", {})["provider"] = "placeholder"
-        settings.raw["content"]["affiliate_ratio"] = 1.0
-    else:
-        if not settings.anthropic_key:
-            print("ยังไม่ได้ใส่ ANTHROPIC_API_KEY ใน .env (หรือรันด้วย --dry-run เพื่อทดสอบ)", file=sys.stderr)
-            return 1
-        from .llm import LLM
-        m = settings.section("model")
-        llm = LLM(settings.anthropic_key, m.get("name", "claude-opus-5-5"),
-                  m.get("effort", "medium"), render_prompt("system", **settings.channel))
+    if args.command == "serve":
+        from .web import serve as start
+        start(args.host, args.port)
+        return 0
 
-    pipeline = Pipeline(settings, llm)
+    try:
+        pipeline = build_pipeline(load_settings(), args.dry_run)
+    except RuntimeError as e:
+        print(e, file=sys.stderr)
+        return 1
     for i in range(args.count):
         print(f"--- คลิป {i + 1}/{args.count} ---")
         pipeline.make_clip()

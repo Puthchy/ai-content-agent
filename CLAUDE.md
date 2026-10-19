@@ -10,12 +10,14 @@ Pipeline that turns one command into a ready-to-post vertical short-story clip (
 - `agent/llm.py` — Claude calls with structured JSON output validated by the pydantic models in `agent/schemas.py`.
 - `agent/images.py` — image providers; `placeholder` is for testing. New providers go in `PROVIDERS`.
 - `agent/fake.py` — canned answers used by `--dry-run`.
+- `agent/web.py` + `agent/static/index.html` — local web UI (stdlib HTTP server, no framework). One run at a time; the page polls `/api/status`.
 
 ## Commands
 
 - Setup: `scripts/setup.sh`
 - Test without API keys: `.venv/bin/python -m agent run --dry-run`
 - Real run: `.venv/bin/python -m agent run --count 3`
+- Web UI: `.venv/bin/python -m agent serve` → http://127.0.0.1:8000
 
 Always run the dry run after changing pipeline code.
 

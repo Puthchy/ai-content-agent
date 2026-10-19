@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Content Agent</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #ffffff; --ink: #1d1c1a; --muted: #6b6862; --line: #e4e1db;
+    --accent: #e8572a; --accent-ink: #ffffff; --ok: #2f8a4c; --warn: #b7791f; --log-bg: #1d1c1a; --log-ink: #e9e6df;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151413; --card: #1f1e1c; --ink: #eceae5; --muted: #9a968e; --line: #33312d;
+            --accent: #f06a3d; --log-bg: #0f0e0d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.55 "IBM Plex Sans Thai", system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between;
+           padding: 20px 24px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  h1 span { color: var(--accent); }
+  h2 { margin: 0 0 14px; font-size: 16px; font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 13px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+  .chip.ok { color: var(--ok); border-color: currentColor; }
+  .chip.warn { color: var(--warn); border-color: currentColor; }
+  main { display: grid; grid-template-columns: 380px 1fr; gap: 20px; padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 16px; } header { padding: 16px; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .stack { display: flex; flex-direction: column; gap: 20px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  input, textarea, select { width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+           border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  textarea { resize: vertical; min-height: 64px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button { font: inherit; font-weight: 500; border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer;
+           background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); width: 100%; padding: 12px; font-size: 16px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .toggle { display: flex; align-items: center; gap: 8px; margin: 14px 0; font-size: 14px; }
+  .toggle input { width: auto; }
+  .log { background: var(--log-bg); color: var(--log-ink); border-radius: 10px; padding: 12px; margin-top: 14px;
+         font: 13px/1.6 ui-monospace, monospace; max-height: 220px; overflow: auto; white-space: pre-wrap; }
+  .log:empty::before { content: "ยังไม่มีงาน"; opacity: .5; }
+  .hint { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .saved { color: var(--ok); font-size: 13px; margin-left: 8px; }
+  .clips-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+  .clips-head h2 { margin: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .clip { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr 1fr; gap: 10px; } .clip .actions { flex-direction: column; } }
+  .clip video { width: 100%; aspect-ratio: 9/16; background: #000; display: block; }
+  .clip .body { padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .clip h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .clip pre { margin: 0; font: inherit; font-size: 13px; color: var(--muted); white-space: pre-wrap; max-height: 120px; overflow: auto; }
+  .clip .actions { display: flex; gap: 8px; margin-top: auto; }
+  .clip .actions > * { flex: 1; text-align: center; font-size: 13px; padding: 8px; }
+  .clip a { color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 10px; }
+  details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  details ol { padding-left: 18px; margin: 6px 0 0; font-size: 13px; }
+  .empty { text-align: center; color: var(--muted); padding: 60px 20px; border: 1px dashed var(--line); border-radius: var(--radius); }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Content <span>Agent</span></h1>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main>
+  <div class="stack">
+    <section class="card">
+      <h2>สร้างคลิป</h2>
+      <label for="count">จำนวนคลิป</label>
+      <input id="count" type="number" min="1" max="20" value="1">
+      <div class="toggle"><input id="dry" type="checkbox"><label for="dry" style="margin:0;color:inherit">โหมดทดสอบ (ไม่เรียก API ไม่เสียเงิน)</label></div>
+      <button class="primary" id="run">เริ่มทำคลิป</button>
+      <div class="log" id="log"></div>
+    </section>
+
+    <section class="card">
+      <h2>ตั้งค่าช่อง</h2>
+      <label for="c-name">ชื่อช่อง</label><input id="c-name">
+      <label for="c-niche">แนวเรื่อง</label><textarea id="c-niche"></textarea>
+      <label for="c-persona">น้ำเสียงผู้เล่า</label><textarea id="c-persona"></textarea>
+      <label for="c-audience">กลุ่มคนดู</label><input id="c-audience">
+      <label for="c-products">หมวดสินค้า Shopee (บรรทัดละหมวด)</label><textarea id="c-products"></textarea>
+      <div class="row">
+        <div><label for="c-seconds">ความยาวคลิป (วินาที)</label><input id="c-seconds" type="number" min="15" max="180"></div>
+        <div><label for="c-scenes">จำนวนฉาก</label><input id="c-scenes" type="number" min="2" max="15"></div>
+      </div>
+      <div class="row">
+        <div><label for="c-ratio">คลิปที่แนบสินค้า (%)</label><input id="c-ratio" type="number" min="0" max="100" step="10"></div>
+        <div><label for="c-effort">ความละเอียดของ AI</label>
+          <select id="c-effort"><option value="low">ต่ำ (ถูก/เร็ว)</option><option value="medium">กลาง</option><option value="high">สูง</option></select></div>
+      </div>
+      <p class="hint">API key และลิงก์ affiliate ตั้งในไฟล์ .env</p>
+      <div style="margin-top:14px"><button id="save">บันทึก</button><span class="saved" id="saved"></span></div>
+    </section>
+  </div>
+
+  <section>
+    <div class="clips-head"><h2>คลิปที่ทำแล้ว</h2><span class="hint" id="clip-count"></span></div>
+    <div class="grid" id="clips"></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let config = null, wasRunning = false, firstPoll = true;
+
+async function api(path, body) {
+  const res = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+function chip(text, cls) { return `<span class="chip ${cls}">${text}</span>`; }
+
+async function loadConfig() {
+  config = await api("/api/config");
+  const ch = config.channel, c = config.content;
+  $("c-name").value = ch.name || "";
+  $("c-niche").value = ch.niche || "";
+  $("c-persona").value = ch.persona || "";
+  $("c-audience").value = ch.audience || "";
+  $("c-products").value = (ch.product_categories || []).join("\n");
+  $("c-seconds").value = c.video_seconds;
+  $("c-scenes").value = c.scenes;
+  $("c-ratio").value = Math.round((c.affiliate_ratio || 0) * 100);
+  $("c-effort").value = (config.model || {}).effort || "medium";
+}
+
+async function saveConfig() {
+  Object.assign(config.channel, {
+    name: $("c-name").value.trim(), niche: $("c-niche").value.trim(),
+    persona: $("c-persona").value.trim(), audience: $("c-audience").value.trim(),
+    product_categories: $("c-products").value.split("\n").map(s => s.trim()).filter(Boolean),
+  });
+  Object.assign(config.content, {
+    video_seconds: +$("c-seconds").value, scenes: +$("c-scenes").value,
+    affiliate_ratio: Math.min(Math.max(+$("c-ratio").value, 0), 100) / 100,
+  });
+  config.model = { ...(config.model || {}), effort: $("c-effort").value };
+  await api("/api/config", config);
+  $("saved").textContent = "บันทึกแล้ว";
+  setTimeout(() => $("saved").textContent = "", 2000);
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]); }
+
+async function loadClips() {
+  const clips = await api("/api/clips");
+  $("clip-count").textContent = clips.length ? `${clips.length} คลิป` : "";
+  $("clips").innerHTML = clips.length ? clips.map(c => {
+    const base = `/files/${encodeURIComponent(c.id)}`;
+    return `<article class="clip">
+      <video src="${base}/video.mp4" poster="${base}/scene_01.png" controls preload="metadata" playsinline></video>
+      <div class="body">
+        <h3>${esc(c.title)}</h3>
+        <pre>${esc(c.post)}</pre>
+        <details><summary>บทพากย์ ${c.scenes.length} ฉาก</summary><ol>${c.scenes.map(s => `<li>${esc(s.narration)}</li>`).join("")}</ol></details>
+        <div class="actions">
+          <button data-copy="${esc(c.post)}">คัดลอกแคปชัน</button>
+          <a href="${base}/video.mp4" download>ดาวน์โหลด</a>
+        </div>
+      </div></article>`;
+  }).join("") : `<div class="empty">ยังไม่มีคลิป<br>กด "เริ่มทำคลิป" ทางซ้าย (เลือกโหมดทดสอบก่อนถ้ายังไม่มี API key)</div>`;
+}
+
+async function poll() {
+  const s = await api("/api/status");
+  $("chips").innerHTML =
+    chip(s.anthropic ? "Claude พร้อม" : "ยังไม่มี Claude key", s.anthropic ? "ok" : "warn") +
+    chip(s.elevenlabs ? "เสียง ElevenLabs" : "เสียง gTTS (ฟรี)", s.elevenlabs ? "ok" : "") +
+    chip(s.affiliate_links ? `ลิงก์ affiliate ${s.affiliate_links}` : "ไม่มีลิงก์ affiliate", s.affiliate_links ? "ok" : "");
+  if (firstPoll && !s.anthropic) $("dry").checked = true;
+  firstPoll = false;
+  const log = $("log");
+  log.textContent = s.job.logs.join("\n");
+  log.scrollTop = log.scrollHeight;
+  $("run").disabled = s.job.running;
+  $("run").textContent = s.job.running ? "กำลังทำ..." : "เริ่มทำคลิป";
+  if (wasRunning && !s.job.running) loadClips();
+  wasRunning = s.job.running;
+  setTimeout(poll, s.job.running ? 1000 : 4000);
+}
+
+$("run").onclick = async () => {
+  try {
+    await api("/api/run", { count: +$("count").value || 1, dry_run: $("dry").checked });
+    wasRunning = true;
+  } catch (e) { alert(e.message); }
+};
+$("save").onclick = () => saveConfig().catch(e => alert(e.message));
+$("clips").onclick = (e) => {
+  const btn = e.target.closest("[data-copy]");
+  if (!btn) return;
+  navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+    btn.textContent = "คัดลอกแล้ว";
+    setTimeout(() => btn.textContent = "คัดลอกแคปชัน", 1500);
+  });
+};
+
+loadConfig(); loadClips(); poll();
+</script>
+</body>
+</html>
